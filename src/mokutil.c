@@ -83,6 +83,8 @@
 #define IMPORT_HASH        (1 << 21)
 #define DELETE_HASH        (1 << 22)
 #define VERBOSITY          (1 << 23)
+#define TRUST_MOK          (1 << 24)
+#define UNTRUST_MOK        (1 << 25)
 
 #define DEFAULT_CRYPT_METHOD SHA512_BASED
 #define DEFAULT_SALT_SIZE    SHA512_SALT_MAX
@@ -151,6 +153,8 @@ print_help ()
 	printf ("  --use-db\t\t\t\tUse DB for validation\n");
 	printf ("  --import-hash <hash>\t\t\tImport a hash into MOK or MOKX\n");
 	printf ("  --delete-hash <hash>\t\t\tDelete a hash in MOK or MOKX\n");
+	printf ("  --trust-mok\t\t\tTrust MOK keys within the kernel keyring\n");
+	printf ("  --untrust-mok\t\t\tDo not trust MOK keys\n");
 	printf ("  --set-verbosity <true/false>\t\tSet the verbosity bit for shim\n");
 	printf ("  --pk\t\t\t\t\tList the keys in PK\n");
 	printf ("  --kek\t\t\t\t\tList the keys in KEK\n");
@@ -2008,6 +2012,18 @@ enable_db()
 	return set_toggle("MokDB", 1);
 }
 
+static int
+trust_mok_keys()
+{
+	return set_toggle("MokTML", 0);
+}
+
+static int
+untrust_mok_keys()
+{
+	return set_toggle("MokTML", 1);
+}
+
 static inline int
 read_file(int fd, void **bufp, size_t *lenptr) {
 	int alloced = 0, size = 0, i = 0;
@@ -2237,6 +2253,8 @@ main (int argc, char *argv[])
 			{"mokx",               no_argument,       0, 'X'},
 			{"import-hash",        required_argument, 0, 0  },
 			{"delete-hash",        required_argument, 0, 0  },
+			{"trust-mok",          no_argument,       0, 0  },
+			{"untrust-mok",        no_argument,       0, 0  },
 			{"set-verbosity",      required_argument, 0, 0  },
 			{"pk",                 no_argument,       0, 0  },
 			{"kek",                no_argument,       0, 0  },
@@ -2271,6 +2289,10 @@ main (int argc, char *argv[])
 				command |= IGNORE_DB;
 			} else if (strcmp (option, "use-db") == 0) {
 				command |= USE_DB;
+			} else if (strcmp (option, "trust-mok") == 0) {
+				command |= TRUST_MOK;
+			} else if (strcmp (option, "untrust-mok") == 0) {
+				command |= UNTRUST_MOK;
 			} else if (strcmp (option, "import-hash") == 0) {
 				command |= IMPORT_HASH;
 				if (hash_str) {
@@ -2545,6 +2567,12 @@ main (int argc, char *argv[])
 			break;
 		case USE_DB:
 			ret = enable_db ();
+			break;
+		case TRUST_MOK:
+			ret = trust_mok_keys ();
+			break;
+		case UNTRUST_MOK:
+			ret = untrust_mok_keys ();
 			break;
 		case LIST_NEW | MOKX:
 			ret = list_keys_in_var ("MokXNew", efi_guid_shim);
