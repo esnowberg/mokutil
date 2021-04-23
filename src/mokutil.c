@@ -85,6 +85,9 @@
 #define VERBOSITY          (1 << 23)
 #define TRUST_PLATFORM     (1 << 24)
 #define UNTRUST_PLATFORM   (1 << 25)
+#define IMA_SB_ENABLE	   (1 << 26)
+#define IMA_SB_DISABLE	   (1 << 27)
+
 
 #define DEFAULT_CRYPT_METHOD SHA512_BASED
 #define DEFAULT_SALT_SIZE    SHA512_SALT_MAX
@@ -155,6 +158,8 @@ print_help ()
 	printf ("  --delete-hash <hash>\t\t\tDelete a hash in MOK or MOKX\n");
 	printf ("  --trust-platform\t\t\tTrust the .platform keyring within kernel\n");
 	printf ("  --untrust-platform\t\t\tDo not trust .platform keyring within kernel\n");
+	printf ("  --ima-sb-enable\t\t\tEnable IMA architecture specific Secure Boot policy\n");
+	printf ("  --ima-sb-disable\t\t\tDisable IMA architecture specific Secure Boot policy\n");
 	printf ("  --set-verbosity <true/false>\t\tSet the verbosity bit for shim\n");
 	printf ("  --pk\t\t\t\t\tList the keys in PK\n");
 	printf ("  --kek\t\t\t\t\tList the keys in KEK\n");
@@ -2024,6 +2029,18 @@ untrust_platform_keyring()
 	return set_toggle("MokTPK", 1);
 }
 
+static int
+enable_ima_policy()
+{
+	return set_toggle("MokIMA", 0);
+}
+
+static int
+disable_ima_policy()
+{
+	return set_toggle("MokIMA", 1);
+}
+
 static inline int
 read_file(int fd, void **bufp, size_t *lenptr) {
 	int alloced = 0, size = 0, i = 0;
@@ -2255,6 +2272,8 @@ main (int argc, char *argv[])
 			{"delete-hash",        required_argument, 0, 0  },
 			{"trust-platform",     no_argument,       0, 0  },
 			{"untrust-platform",   no_argument,       0, 0  },
+			{"ima-sb-enable",      no_argument,       0, 0  },
+			{"ima-sb-disable",     no_argument,       0, 0  },
 			{"set-verbosity",      required_argument, 0, 0  },
 			{"pk",                 no_argument,       0, 0  },
 			{"kek",                no_argument,       0, 0  },
@@ -2293,6 +2312,10 @@ main (int argc, char *argv[])
 				command |= TRUST_PLATFORM;
 			} else if (strcmp (option, "untrust-platform") == 0) {
 				command |= UNTRUST_PLATFORM;
+			} else if (strcmp (option, "ima-sb-enable") == 0) {
+				command |= IMA_SB_ENABLE;
+			} else if (strcmp (option, "ima-sb-disable") == 0) {
+				command |= IMA_SB_DISABLE;
 			} else if (strcmp (option, "import-hash") == 0) {
 				command |= IMPORT_HASH;
 				if (hash_str) {
@@ -2573,6 +2596,12 @@ main (int argc, char *argv[])
 			break;
 		case UNTRUST_PLATFORM:
 			ret = untrust_platform_keyring ();
+			break;
+		case IMA_SB_ENABLE:
+			ret = enable_ima_policy ();
+			break;
+		case IMA_SB_DISABLE:
+			ret = disable_ima_policy ();
 			break;
 		case LIST_NEW | MOKX:
 			ret = list_keys_in_var ("MokXNew", efi_guid_shim);
